@@ -33,7 +33,7 @@ for i in range(1, num_reducer+1, 1):
                 words[word] += num
 
 
-print(sorted(words.items(), key = lambda kv:(kv[1], kv[0]))) 
+# print(sorted(words.items(), key = lambda kv:(kv[1], kv[0]))) 
 
 ans = dict()
 file_directory = "./testcases/10_sample_ans/"
@@ -52,9 +52,10 @@ for i in range(1, num_reducer+1, 1):
                 ans[word] += num
 
 
-print(sorted(ans.items(), key = lambda kv:(kv[1], kv[0]))) 
+# print(sorted(ans.items(), key = lambda kv:(kv[1], kv[0]))) 
 
-# items = ans.items()
-# tmp = words.items()
-# print(items)
-# print(tmp)
+items = ans.items()
+tmp = words.items()
+for i in items:
+    if i not in tmp:
+        print(i)

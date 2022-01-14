@@ -4,10 +4,8 @@
 
 #define debug 1;
 /*
-use process 0 as the jobtracker(scheduler)
+use process rank - 1 as the jobtracker(scheduler)
 use other process as the tasktracker(worker)
-
-
 */
 
 int main(int argc, char **argv) {
