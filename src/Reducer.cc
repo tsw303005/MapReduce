@@ -5,7 +5,6 @@ void* ReducerFunction(void* input) {
     int task = -1;
     bool flag = true;
     Count *word_count = new Count;
-    Word *words = new Word;
     Total *total = new Total;
     Collect *group = new Collect;
 
@@ -24,7 +23,6 @@ void* ReducerFunction(void* input) {
 
         if (task != -1) {
             word_count->clear();
-            words->clear();
             total->clear();
             group->clear();
 
@@ -65,6 +63,7 @@ void Group(Total *total, Collect *group) {
             std::vector<int> tmp;
             tmp.clear();
             (*group)[item.first] = tmp;
+            (*group)[item.first].push_back(item.second);
         } else {
             (*group)[item.first].push_back(item.second);
         }
