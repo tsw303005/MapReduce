@@ -26,6 +26,7 @@ void* MapperFunction(void* input) {
             
             // split chunk
             InputSplit(chunk, mapper->chunk_size, mapper->source_file, word_count, words);
+
             // get word partition
             std::vector<std::vector<std::string>> split_result(mapper->num_reducer+1);
             for (auto word : *words) {
@@ -37,11 +38,10 @@ void* MapperFunction(void* input) {
                 std::string reducer_num_str = std::to_string(i);
                 std::string filename = "./intermediate_file/" + chunk_str + "_" + reducer_num_str + ".txt";
                 std::ofstream myfile(filename);
-                for (auto word : split_result[i-1]) {
-                    //std::cout << word << " ";
+                for (auto word : split_result[i]) {
                     myfile << word << " " << (*word_count)[word] << "\n";
                 }
-                //std::cout << "\n\n";
+                myfile.close();
             }
 
             // job terminate
@@ -71,26 +71,33 @@ void InputSplit(int chunk, int chunk_size, std::string source_file, Count *word_
         // call Map function
         Map(line, word_count, words);
     }
+    input_file.close();
 }
 
 void Map(std::string line, Count *word_count, Word *words) {
     int pos = 0;
     std::string word;
+    std::vector<std::string> tmp_words;
     
     while ((pos = line.find(" ")) != std::string::npos) {
         word = line.substr(0, pos);
-
-        if (word_count->count(word) == 0) {
-            words->push_back(word);
-            (*word_count)[word] = 1;
-        } else {
-            (*word_count)[word]++;
-        }
-
+        tmp_words.push_back(word);
         line.erase(0, pos + 1);
+    }
+
+    if (!line.empty())
+        tmp_words.push_back(line);
+
+    for (auto w : tmp_words) {
+        if (word_count->count(w) == 0) {
+            words->push_back(w);
+            (*word_count)[w] = 1;
+        } else {
+            (*word_count)[w] += 1;
+        }
     }
 }
 
 int Partition(int num_reducer, std::string word) {
-    return (word.length() % num_reducer + 1);
+    return ((word.length() % num_reducer) + 1);
 }

@@ -3,10 +3,12 @@
 #include "Reducer.h"
 
 Worker::Worker(int cpus, int mapper_num, int rank, int size,
-                int chunk_size, int num_reducer, std::string source_file) {
+                int chunk_size, int num_reducer, std::string source_file, std::string job_name) {
     this->source_file = source_file;
+    this->job_name = job_name;
     this->threads = new pthread_t[cpus];
     this->mapper_num = mapper_num;
+    this->reducer_number = cpus - mapper_num;
     this->rank = rank;
     this->node_num = size;
     this->scheduler_index = size - 1;
@@ -14,7 +16,6 @@ Worker::Worker(int cpus, int mapper_num, int rank, int size,
     this->num_reducer = num_reducer;
 
     this->lock = new pthread_mutex_t;
-    this->job = new std::queue<int>;
     this->available_num = new int;
     pthread_mutex_init(this->lock, NULL);
 }
@@ -28,6 +29,8 @@ void Worker::ThreadPool(int task) {
     bool task_finished = false;
     MPI_Status status;
     int flag = 1;
+
+    this->job = new std::queue<int>;
 
     if (task == 1) { // mapper
         int chunk_index;
@@ -43,7 +46,7 @@ void Worker::ThreadPool(int task) {
 
 
         // allocate mapper thread
-        for (int i = 1; i <= this->mapper_num; i++) {
+        for (int i = 0; i < this->mapper_num; i++) {
             pthread_create(&this->threads[i], NULL, &MapperFunction, &mapper);
         }
 
@@ -63,13 +66,58 @@ void Worker::ThreadPool(int task) {
         }
 
         // check all mapper thread return
-        for (int i = 1; i <= this->mapper_num; i++) {
+        for (int i = 0; i < this->mapper_num; i++) {
             pthread_join(this->threads[i], NULL);
         }
 
+        // delete queue
+        delete this->job;
+
         // inform scheduler
         MPI_Send(&flag, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
-    } else { // reducer
+    } else if (task == 2) { // reducer
+        int reducer_index;
+        int chunk_number;
+        Reducer reducer;
 
+        MPI_Recv(&chunk_number, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD, &status);
+
+        *this->available_num = this->reducer_number;
+        reducer.available_num = this->available_num;
+        reducer.num_reducer = this->num_reducer;
+        reducer.lock = this->lock;
+        reducer.job = this->job;
+        reducer.job_name = this->job_name;
+        reducer.chunk_number = chunk_number;
+
+        for (int i = 0; i < this->reducer_number; i++) {
+            pthread_create(&this->threads[i], NULL, &ReducerFunction, &reducer);
+        }
+
+        while (!task_finished) {
+            // check available thread
+            while (!(*this->available_num));
+
+            MPI_Send(&this->rank, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
+            MPI_Recv(&reducer_index, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD, &status);
+
+            pthread_mutex_lock(this->lock);
+            this->job->push(reducer_index);
+            pthread_mutex_unlock(this->lock);
+            if (reducer_index == -1) { // reducer job done
+                task_finished = true;
+            }
+        }
+
+        // check all mapper thread return
+        for (int i = 0; i < this->reducer_number; i++) {
+            pthread_join(this->threads[i], NULL);
+        }
+
+        // delete queue
+        delete this->job;
+
+        // inform scheduler
+        MPI_Send(&flag, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
     }
 }

@@ -30,14 +30,16 @@ int main(int argc, char **argv) {
         Scheduler scheduler(delay, size - 1);
         scheduler.GetMapperTask(locality_config_filename);
         scheduler.AssignMapperTask();
+        scheduler.GetReducerTask(num_reducer);
+        scheduler.AssignReducerTask();
     } else { // worker
         cpu_set_t cpuset;
         sched_getaffinity(0, sizeof(cpuset), &cpuset);
         int ncpus = CPU_COUNT(&cpuset);
 
-        Worker worker(ncpus, ncpus - 1, rank, size, chunk_size, num_reducer, input_filename);
+        Worker worker(ncpus, ncpus - 1, rank, size, chunk_size, num_reducer, input_filename, job_name);
         worker.ThreadPool(1); // mapper task
-
+        worker.ThreadPool(2); // reducer task
     }
 
     return 0;
