@@ -10,18 +10,25 @@
 
 class Worker {
 public:
-    Worker(unsigned int cpus, unsigned int mapper_num, unsigned int rank, unsigned int size);
+    Worker(int cpus, int mapper_num, int rank, int size,
+            int chunk_size, int num_reducer, std::string source_file);
     ~Worker();
-    void ThreadPool(unsigned int task);
-    unsigned int *available_num;
-    pthread_mutex_t *lock;
-    std::queue<int> *job;
+    void ThreadPool(int task);
 
 private:
-    unsigned int rank;
-    unsigned int mapper_num;
-    unsigned int node_num;
+    int rank;
+    int mapper_num;
+    int node_num;
+    int scheduler_index;
+    int chunk_size;
+    int num_reducer;
+    int *available_num; // check availabl thread
+
     pthread_t *threads;
+    pthread_mutex_t *lock;
+
+    std::string source_file;
+    std::queue<int> *job;
 };
 
 #endif

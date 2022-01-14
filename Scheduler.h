@@ -11,7 +11,7 @@
 
 class Scheduler {
 public:
-    Scheduler(unsigned int delay, unsigned int worker_num);
+    Scheduler(int delay, int worker_num);
     void GetMapperTask(std::string locality_config_filename);
     void AssignMapperTask();
     void GetReducerTask();
@@ -19,12 +19,12 @@ public:
     void EndWorkerExcecute();
 
 private:
-    std::vector<unsigned int> MapperTaskPool;
-    std::vector<unsigned int> ReducerTaskPool;
-    std::unordered_map<unsigned int, unsigned int> Locality;
-    unsigned int execution_time;
-    unsigned int delay;
-    unsigned int worker_num;
+    std::vector<int> MapperTaskPool;
+    std::vector<int> ReducerTaskPool;
+    std::unordered_map<int, int> Locality;
+    int execution_time;
+    int delay;
+    int worker_num;
 };
 
 #endif
