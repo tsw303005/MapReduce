@@ -14,7 +14,7 @@ typedef std::vector<std::string> Word;
 void* MapperFunction(void* input);
 void InputSplit(int chunk, int chunk_size, std::string source_file, Count *word_count, Word *words);
 void Map(std::string line, Count *word_count, Word *words);
-int Partition(int num_reducer, int chunk);
+int Partition(int num_reducer, std::string word);
 
 struct Mapper {
     pthread_mutex_t *lock;

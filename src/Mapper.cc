@@ -27,6 +27,22 @@ void* MapperFunction(void* input) {
             // split chunk
             InputSplit(chunk, mapper->chunk_size, mapper->source_file, word_count, words);
             // get word partition
+            std::vector<std::vector<std::string>> split_result(mapper->num_reducer+1);
+            for (auto word : *words) {
+                split_result[Partition(mapper->num_reducer, word)].push_back(word);
+            }
+            // generate intermediate file
+            for (int i = 1; i <= mapper->num_reducer; i++) {
+                std::string chunk_str = std::to_string(chunk);
+                std::string reducer_num_str = std::to_string(i);
+                std::string filename = "./intermediate_file/" + chunk_str + "_" + reducer_num_str + ".txt";
+                std::ofstream myfile(filename);
+                for (auto word : split_result[i-1]) {
+                    //std::cout << word << " ";
+                    myfile << word << " " << (*word_count)[word] << "\n";
+                }
+                //std::cout << "\n\n";
+            }
 
             // job terminate
             pthread_mutex_lock(mapper->lock);
@@ -75,6 +91,6 @@ void Map(std::string line, Count *word_count, Word *words) {
     }
 }
 
-int Partitaion(int num_reducer, int chunk) {
-
+int Partition(int num_reducer, std::string word) {
+    return (word.length() % num_reducer + 1);
 }
