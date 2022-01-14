@@ -8,7 +8,65 @@ Scheduler::Scheduler(unsigned int delay, unsigned int worker_num) {
     this->ReducerTaskPool.clear();
 }
 
+
+// scheduer need to know the number of chunk and its locality
 void Scheduler::GetMapperTask(std::string locality_config_filename) {
     // read number of chunk and its locality
-    
+    unsigned int chunk_index;
+    unsigned int loc_num;
+    std::ifstream input_file(locality_config_filename);
+
+    while (input_file >> chunk_index >> loc_num) {
+        this->MapperTaskPool.push_back(chunk_index);
+        this->Locality[chunk_index] = loc_num;
+    }
+}
+
+// Scheduler assign the mapper task
+void Scheduler::AssignMapperTask() {
+    MPI_Status status;
+    unsigned int worker_index;
+    unsigned int task_num;
+    unsigned int task;
+
+    while (!this->MapperTaskPool.empty()) {
+        // receive available mapper thread from any node
+        MPI_Recv(&worker_index, 1, MPI_UNSIGNED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+
+        // assign mapper task to the node and consider its locality
+        for (int i = 0; i < this->MapperTaskPool.size(); i++) {
+            // 起床記得處理 locality
+            if (worker_index == this->Locality[this->MapperTaskPool[i]] % this->worker_num) {
+                task_num = i;
+                break;
+            } else if (i == this->MapperTaskPool.size() - 1) task_num = 0, this->execution_time += this->delay;
+        }
+        task = this->MapperTaskPool[task_num];
+        this->MapperTaskPool.erase(this->MapperTaskPool.begin() + task_num);
+
+        // Send task to the worker
+        MPI_Send(&task, 1, MPI_UNSIGNED, (int)worker_index, 1, MPI_COMM_WORLD);
+    }
+
+    // end other worker
+    this->EndWorkerExcecute();
+}
+
+void Scheduler::EndWorkerExcecute() {
+    bool signal;
+    unsigned int worker_index;
+    MPI_Status status;
+    // tell other node there is no mapper function
+    for (int i = 1; i <= this->worker_num; i++) {
+        int termination_signal = -1;
+        MPI_Recv(&worker_index, 1, MPI_UNSIGNED, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        MPI_Send(&termination_signal, 1, MPI_INT, (int)worker_index, 1, MPI_COMM_WORLD);
+    }
+
+    // get signal from other worker
+    for (int i = 1; i <= this->worker_num; i++) {
+        MPI_Recv(&signal, 1, MPI_C_BOOL, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    }
+
+    std::cout << "[Info]: Mapper task terminate seccessfully\n";
 }
