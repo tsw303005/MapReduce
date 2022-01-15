@@ -1,7 +1,8 @@
 
-file_directory = "./"
-num_reducer = 12
-chunk = 15;
+file_directory = "./result_file/"
+num_reducer = int(input('num_reducer: '))
+chunk = int(input('chunk: '))
+testcase = input('testcase: ')
 
 words = dict()
 
@@ -20,7 +21,7 @@ words = dict()
 #                     words[word] += num
 
 for i in range(1, num_reducer+1, 1):
-    file = "TEST10-" + str(i) + ".txt"
+    file = "TEST" + testcase + "-" + str(i) + ".out"
     with open(file_directory+file, 'r') as f:
         lines = f.readlines();
         for line in lines:
@@ -36,10 +37,10 @@ for i in range(1, num_reducer+1, 1):
 # print(sorted(words.items(), key = lambda kv:(kv[1], kv[0]))) 
 
 ans = dict()
-file_directory = "./testcases/10_sample_ans/"
+file_directory = "./testcases/" + testcase + "_sample_ans/"
 
 for i in range(1, num_reducer+1, 1):
-    file = "TEST10-" + str(i) + ".out"
+    file = "TEST" + testcase + "-" + str(i) + ".out"
     with open(file_directory+file, 'r') as f:
         lines = f.readlines();
         for line in lines:
@@ -56,6 +57,9 @@ for i in range(1, num_reducer+1, 1):
 
 items = ans.items()
 tmp = words.items()
+# print(tmp)
 for i in items:
     if i not in tmp:
         print(i)
+# print(len(items))
+# print(len(tmp))

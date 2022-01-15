@@ -10,6 +10,12 @@ Scheduler::Scheduler(int delay, int worker_num) {
         this->ReducerTaskPool.pop();
 }
 
+Scheduler::~Scheduler() {
+    // end
+    std::cout << "[Info]: Seheduler terminate\n";
+    std::cout << "[Info]: Total cost time: " << this->execution_time << "\n";
+}
+
 
 // scheduer need to know the number of chunk and its locality
 void Scheduler::GetMapperTask(std::string locality_config_filename) {
@@ -106,5 +112,5 @@ void Scheduler::EndWorkerExcecute(int num) {
         MPI_Recv(&signal, 1, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
     }
     std::string job_name = (!num) ? "Mapper" : "Reducer";
-    std::cout << "[Info]: " << job_name << " Task terminate seccessfully\n";
+    std::cout << "[Info]: " << job_name << " Task terminate successfully\n";
 }

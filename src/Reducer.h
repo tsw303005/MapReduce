@@ -6,17 +6,19 @@
 #include <string>
 #include <cstring>
 #include <vector>
-#include <unordered_map>
 #include <pthread.h>
 #include <queue>
 #include <utility>
 #include <algorithm>
 #include <cstdio>
+#include <map>
 #include "Mapper.h"
 
 typedef std::pair<std::string, int> Item;
 typedef std::vector<Item> Total;
-typedef std::unordered_map<std::string, std::vector<int> > Collect;
+typedef std::map<std::string, std::vector<int> > Collect;
+
+bool cmp(Item a, Item b);
 
 void* ReducerFunction(void* input);
 void ReadFile(int num_reducer, int chunk_size, int task, Total *total);

@@ -6,5 +6,7 @@
 	"DELAY": 1,
 	"INPUT_FILE_NAME": "05.word",
 	"CHUNK_SIZE": 2,
-	"LOCALITY_CONFIG_FILENAME": "05.loc"
+	"LOCALITY_CONFIG_FILENAME": "05.loc",
+	"Command": "srun -N3 -c12 ./MapReduce TEST05 10 1 ./testcases/05.word 2 ./testcases/05.loc ./",
+	"Chunk_num": "25"
 }

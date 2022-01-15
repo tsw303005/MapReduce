@@ -13,6 +13,7 @@
 class Scheduler {
 public:
     Scheduler(int delay, int worker_num);
+    ~Scheduler();
     void GetMapperTask(std::string locality_config_filename);
     void AssignMapperTask();
     void GetReducerTask(int num_reducer);

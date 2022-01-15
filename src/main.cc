@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         sched_getaffinity(0, sizeof(cpuset), &cpuset);
         int ncpus = CPU_COUNT(&cpuset);
 
-        Worker worker(ncpus, ncpus - 1, rank, size, chunk_size, num_reducer, input_filename, job_name);
+        Worker worker(ncpus, ncpus - 1, rank, size, chunk_size, num_reducer, delay, input_filename, job_name);
         worker.ThreadPool(1); // mapper task
         worker.ThreadPool(2); // reducer task
     }

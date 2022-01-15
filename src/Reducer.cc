@@ -49,12 +49,19 @@ void* ReducerFunction(void* input) {
         }
     }
 
+    free(word_count);
+    free(total);
+    free(group);
     pthread_exit(NULL);
+}
+
+bool cmp(Item a, Item b) {
+    return a.first < b.first;
 }
 
 void Sort(Total *total) {
     // sort according 
-    sort(total->begin(), total->end());
+    sort(total->begin(), total->end(), cmp);
 }
 
 void Group(Total *total, Collect *group) {
@@ -103,6 +110,7 @@ void ReadFile(int num_reducer, int chunk_number, int task, Total *total) {
             f[i] = filename[i];
         
         f[filename.length()] = '\0';
+        
         // delete intermediate file
         int result = std::remove(f);
         free(f);
@@ -111,7 +119,7 @@ void ReadFile(int num_reducer, int chunk_number, int task, Total *total) {
 
 void Output(Count *word_count, int task, std::string job_name) {
     std::string task_str = std::to_string(task);
-    std::string filename = "./" + job_name + "-" + task_str + ".txt";
+    std::string filename = "./result_file/" + job_name + "-" + task_str + ".out";
     std::ofstream myfile(filename);
     for (auto word : *word_count) {
         myfile << word.first << " " << word.second << "\n";

@@ -21,6 +21,10 @@ void* MapperFunction(void* input) {
         pthread_mutex_unlock(mapper->lock);
 
         if (chunk != -1) {
+            if (chunk % mapper->worker_num != mapper->rank && WAIT) { // not locality file
+                std::cout << "[Info]: One thread sleep\n";
+                sleep(mapper->delay);
+            }
             word_count->clear();
             words->clear();
             
@@ -52,6 +56,8 @@ void* MapperFunction(void* input) {
         }
     }
 
+    free(word_count);
+    free(words);
     pthread_exit(NULL);
 }
 
