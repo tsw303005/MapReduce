@@ -112,5 +112,5 @@ void Scheduler::EndWorkerExcecute(int num) {
         MPI_Recv(&signal, 1, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
     }
     std::string job_name = (!num) ? "Mapper" : "Reducer";
-    std::cout << "[Info]: " << job_name << " Task terminate seccessfully\n";
+    std::cout << "[Info]: " << job_name << " Task terminate successfully\n";
 }

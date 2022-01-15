@@ -24,7 +24,7 @@ Worker::Worker(int cpus, int mapper_num, int rank, int size,
 Worker::~Worker() {
     delete this->threads;
     pthread_mutex_destroy(this->lock);
-    std::cout << "[Info]: "<< this->rank << " Worker terminate\n";
+    std::cout << "[Info]: Worker "<< this->rank << " terminate\n";
 }
 
 void Worker::ThreadPool(int task) {
