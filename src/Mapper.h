@@ -6,9 +6,12 @@
 #include <string>
 #include <pthread.h>
 #include <queue>
-#include <unordered_map>
+#include <map>
+#include <unistd.h>
 
-typedef std::unordered_map<std::string, int> Count;
+#define WAIT 0 // simulate true delay
+
+typedef std::map<std::string, int> Count;
 typedef std::vector<std::string> Word;
 
 void* MapperFunction(void* input);
@@ -23,6 +26,9 @@ struct Mapper {
     int *available_num;
     int chunk_size;
     int num_reducer;
+    int delay;
+    int rank;
+    int worker_num;
 };
 
 #endif

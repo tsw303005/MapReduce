@@ -10,6 +10,12 @@ Scheduler::Scheduler(int delay, int worker_num) {
         this->ReducerTaskPool.pop();
 }
 
+Scheduler::~Scheduler() {
+    // end
+    std::cout << "[Info]: Seheduler terminate\n";
+    std::cout << "[Info]: Total cost time: " << this->execution_time << "\n";
+}
+
 
 // scheduer need to know the number of chunk and its locality
 void Scheduler::GetMapperTask(std::string locality_config_filename) {
