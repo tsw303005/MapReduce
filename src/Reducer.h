@@ -25,11 +25,12 @@ void ReadFile(int num_reducer, int chunk_size, int task, Total *total);
 void Sort(Total *total);
 void Group(Total *total, Collect *group);
 void Reduce(Collect *group, Count *word_count);
-void Output(Count *word_count, int task, std::string job_name);
+void Output(Count *word_count, int task, std::string job_name, std::string output_dir);
 
 struct Reducer {
     pthread_mutex_t *lock;
     std::string job_name;
+    std::string output_dir;
     std::queue<int> *job;
 
     int task;

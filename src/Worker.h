@@ -10,8 +10,8 @@
 
 class Worker {
 public:
-    Worker(int cpus, int mapper_num, int rank, int size,
-            int chunk_size, int num_reducer, int delay, std::string source_file, std::string job_name);
+    Worker(int cpus, int mapper_num, int rank, int size, int chunk_size,
+            int num_reducer, int delay, std::string source_file, std::string job_name, std::string output_dir);
     ~Worker();
     void ThreadPool(int task);
 
@@ -31,6 +31,7 @@ private:
 
     std::string source_file;
     std::string job_name;
+    std::string output_dir;
     std::queue<int> *job;
 };
 

@@ -19,6 +19,7 @@ public:
     void GetReducerTask(int num_reducer);
     void AssignReducerTask();
     void EndWorkerExcecute(int num);
+    void LogEvent(std::string event);
 
 private:
     std::vector<int> MapperTaskPool;

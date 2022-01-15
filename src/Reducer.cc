@@ -39,7 +39,7 @@ void* ReducerFunction(void* input) {
             Reduce(group, word_count);
 
             // output
-            Output(word_count, task, reducer->job_name);
+            Output(word_count, task, reducer->job_name, reducer->output_dir);
 
             // job terminate
             pthread_mutex_lock(reducer->lock);
@@ -117,9 +117,9 @@ void ReadFile(int num_reducer, int chunk_number, int task, Total *total) {
     }
 }
 
-void Output(Count *word_count, int task, std::string job_name) {
+void Output(Count *word_count, int task, std::string job_name, std::string output_dir) {
     std::string task_str = std::to_string(task);
-    std::string filename = "./result_file/" + job_name + "-" + task_str + ".out";
+    std::string filename = output_dir + job_name + "-" + task_str + ".out";
     std::ofstream myfile(filename);
     for (auto word : *word_count) {
         myfile << word.first << " " << word.second << "\n";

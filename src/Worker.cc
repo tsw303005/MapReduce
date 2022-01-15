@@ -2,8 +2,8 @@
 #include "Mapper.h"
 #include "Reducer.h"
 
-Worker::Worker(int cpus, int mapper_num, int rank, int size,
-                int chunk_size, int num_reducer, int delay, std::string source_file, std::string job_name) {
+Worker::Worker(int cpus, int mapper_num, int rank, int size, int chunk_size,
+                int num_reducer, int delay, std::string source_file, std::string job_name, std::string output_dir) {
     this->source_file = source_file;
     this->job_name = job_name;
     this->threads = new pthread_t[cpus];
@@ -15,6 +15,7 @@ Worker::Worker(int cpus, int mapper_num, int rank, int size,
     this->chunk_size = chunk_size;
     this->num_reducer = num_reducer;
     this->delay = delay;
+    this->output_dir = output_dir;
 
     this->lock = new pthread_mutex_t;
     this->available_num = new int;
@@ -93,6 +94,7 @@ void Worker::ThreadPool(int task) {
         reducer.lock = this->lock;
         reducer.job = this->job;
         reducer.job_name = this->job_name;
+        reducer.output_dir = this->output_dir;
         reducer.chunk_number = chunk_number;
 
         for (int i = 0; i < this->reducer_thread_number; i++) {
