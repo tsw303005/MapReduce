@@ -7,6 +7,6 @@
 	"INPUT_FILE_NAME": "02.word",
 	"CHUNK_SIZE": 2,
 	"LOCALITY_CONFIG_FILENAME": "02.loc",
-	"Command": "srun -N2 -c12 ./MapReduce TEST02 7 2 ./testcases/02.word 2 ./testcases/02.loc ./",
+	"Command": "srun -N2 -c12 ./MapReduce TEST02 7 2 ./testcases/02.word 2 ./testcases/02.loc ./result_file/",
 	"Chunk_num": "15"
 }

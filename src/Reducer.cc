@@ -3,6 +3,7 @@
 void* ReducerFunction(void* input) {
     Reducer* reducer = (Reducer*)input;
     int task = -1;
+    int request[3];
     bool flag = true;
     Count *word_count = new Count;
     Total *total = new Total;
@@ -27,7 +28,7 @@ void* ReducerFunction(void* input) {
             group->clear();
 
             // read file
-            ReadFile(reducer->num_reducer, reducer->chunk_number, task, total);
+            ReadFile(reducer->num_reducer, task, total);
 
             // sort words
             Sort(total);
@@ -40,6 +41,11 @@ void* ReducerFunction(void* input) {
 
             // output
             Output(word_count, task, reducer->job_name, reducer->output_dir);
+
+            request[0] = 1;
+            request[1] = reducer->rank;
+            request[2] = task;
+            MPI_Send(&request, 3, MPI_INT, reducer->scheduler_index, 1, MPI_COMM_WORLD);
 
             // job terminate
             pthread_mutex_lock(reducer->lock);
@@ -86,35 +92,30 @@ void Reduce(Collect *group, Count *word_count) {
     }
 }
 
-void ReadFile(int num_reducer, int chunk_number, int task, Total *total) {
+void ReadFile(int num_reducer, int task, Total *total) {
     std::string filename;
-    std::string chunk_str;
     std::string reducer_num_str = std::to_string(task);
-
     std::string word;
     int count;
 
-    for (int i = 1; i <= chunk_number; i++) {
-        chunk_str = std::to_string(i);
-        filename = "./intermediate_file/" + chunk_str + "_" + reducer_num_str + ".txt";
+    filename = "./intermediate_file/" + reducer_num_str + ".txt";
 
-        std::ifstream input_file(filename);
-        while (input_file >> word >> count) {
-            total->push_back({word, count});
-        }
-        input_file.close();
-
-        char *f;
-        f = new char[filename.length() + 1];
-        for (int i = 0; i < filename.length(); i++)
-            f[i] = filename[i];
-        
-        f[filename.length()] = '\0';
-        
-        // delete intermediate file
-        int result = std::remove(f);
-        free(f);
+    std::ifstream input_file(filename);
+    while (input_file >> word >> count) {
+        total->push_back({word, count});
     }
+    input_file.close();
+
+    char *f;
+    f = new char[filename.length() + 1];
+    for (int i = 0; i < filename.length(); i++)
+        f[i] = filename[i];
+    
+    f[filename.length()] = '\0';
+    
+    // delete intermediate file
+    int result = std::remove(f);
+    free(f);
 }
 
 void Output(Count *word_count, int task, std::string job_name, std::string output_dir) {
@@ -124,4 +125,5 @@ void Output(Count *word_count, int task, std::string job_name, std::string outpu
     for (auto word : *word_count) {
         myfile << word.first << " " << word.second << "\n";
     }
+    myfile.close();
 }

@@ -3,6 +3,7 @@
 void* MapperFunction(void* input) {
     Mapper *mapper = (Mapper*)input;
     int chunk = -1;
+    int request[3];
     bool flag = true;
     Count *word_count = new Count;
     Word *words = new Word;
@@ -47,6 +48,11 @@ void* MapperFunction(void* input) {
                 }
                 myfile.close();
             }
+
+            request[0] = 1;
+            request[1] = mapper->rank;
+            request[2] = chunk;
+            MPI_Send(&request, 3, MPI_INT, mapper->scheduler_index, 1, MPI_COMM_WORLD);
 
             // job terminate
             pthread_mutex_lock(mapper->lock);

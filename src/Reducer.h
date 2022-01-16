@@ -21,7 +21,7 @@ typedef std::map<std::string, std::vector<int> > Collect;
 bool cmp(Item a, Item b);
 
 void* ReducerFunction(void* input);
-void ReadFile(int num_reducer, int chunk_size, int task, Total *total);
+void ReadFile(int num_reducer, int task, Total *total);
 void Sort(Total *total);
 void Group(Total *total, Collect *group);
 void Reduce(Collect *group, Count *word_count);
@@ -36,7 +36,8 @@ struct Reducer {
     int task;
     int *available_num;
     int num_reducer;
-    int chunk_number;
+    int scheduler_index;
+    int rank;
 };
 
 #endif
