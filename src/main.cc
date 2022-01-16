@@ -15,6 +15,11 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    // cpu number
+    cpu_set_t cpuset;
+    sched_getaffinity(0, sizeof(cpuset), &cpuset);
+    int ncpus = CPU_COUNT(&cpuset);
+
     // process parameter
     std::string job_name = std::string(argv[1]);
     std::string input_filename = std::string(argv[4]);
@@ -25,17 +30,14 @@ int main(int argc, char **argv) {
     int chunk_size = std::stoi(argv[5]);
 
     if (rank == size - 1) { // Scheduler
-        Scheduler scheduler(delay, size - 1);
+        Scheduler scheduler(delay, size - 1, job_name, argv, rank, ncpus);
         scheduler.GetMapperTask(locality_config_filename);
         scheduler.AssignMapperTask();
-        scheduler.GetReducerTask(num_reducer);
+        scheduler.Shuffle();
+        scheduler.GetReducerTask();
         scheduler.AssignReducerTask();
     } else { // worker
-        cpu_set_t cpuset;
-        sched_getaffinity(0, sizeof(cpuset), &cpuset);
-        int ncpus = CPU_COUNT(&cpuset);
-
-        Worker worker(ncpus, ncpus - 1, rank, size, chunk_size, num_reducer, delay, input_filename, job_name);
+        Worker worker(ncpus, ncpus - 1, rank, size, chunk_size, num_reducer, delay, input_filename, job_name, output_dir);
         worker.ThreadPool(1); // mapper task
         worker.ThreadPool(2); // reducer task
     }

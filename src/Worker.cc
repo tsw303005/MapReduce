@@ -2,8 +2,8 @@
 #include "Mapper.h"
 #include "Reducer.h"
 
-Worker::Worker(int cpus, int mapper_num, int rank, int size,
-                int chunk_size, int num_reducer, int delay, std::string source_file, std::string job_name) {
+Worker::Worker(int cpus, int mapper_num, int rank, int size, int chunk_size,
+                int num_reducer, int delay, std::string source_file, std::string job_name, std::string output_dir) {
     this->source_file = source_file;
     this->job_name = job_name;
     this->threads = new pthread_t[cpus];
@@ -15,6 +15,7 @@ Worker::Worker(int cpus, int mapper_num, int rank, int size,
     this->chunk_size = chunk_size;
     this->num_reducer = num_reducer;
     this->delay = delay;
+    this->output_dir = output_dir;
 
     this->lock = new pthread_mutex_t;
     this->available_num = new int;
@@ -30,7 +31,8 @@ Worker::~Worker() {
 void Worker::ThreadPool(int task) {
     bool task_finished = false;
     MPI_Status status;
-    int flag = 1;
+    int signal = 1;
+    int request[3];
 
     this->job = new std::queue<int>;
 
@@ -48,6 +50,7 @@ void Worker::ThreadPool(int task) {
         mapper.delay = this->delay;
         mapper.rank = this->rank;
         mapper.worker_num = this->node_num - 1;
+        mapper.scheduler_index = this->scheduler_index;
 
 
         // allocate mapper thread
@@ -59,7 +62,10 @@ void Worker::ThreadPool(int task) {
             // check available thread number
             while (!(*this->available_num));
 
-            MPI_Send(&this->rank, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
+            request[0] = 0;
+            request[1] = this->rank;
+            request[2] = 0;
+            MPI_Send(&request, 3, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
             MPI_Recv(&chunk_index, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD, &status);
 
             pthread_mutex_lock(this->lock);
@@ -77,15 +83,9 @@ void Worker::ThreadPool(int task) {
 
         // delete queue
         delete this->job;
-
-        // inform scheduler
-        MPI_Send(&flag, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
     } else if (task == 2) { // reducer
         int reducer_index;
-        int chunk_number;
         Reducer reducer;
-
-        MPI_Recv(&chunk_number, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD, &status);
 
         *this->available_num = this->reducer_thread_number;
         reducer.available_num = this->available_num;
@@ -93,7 +93,9 @@ void Worker::ThreadPool(int task) {
         reducer.lock = this->lock;
         reducer.job = this->job;
         reducer.job_name = this->job_name;
-        reducer.chunk_number = chunk_number;
+        reducer.output_dir = this->output_dir;
+        reducer.scheduler_index = this->scheduler_index;
+        reducer.rank = this->rank;
 
         for (int i = 0; i < this->reducer_thread_number; i++) {
             pthread_create(&this->threads[i], NULL, &ReducerFunction, &reducer);
@@ -103,7 +105,10 @@ void Worker::ThreadPool(int task) {
             // check available thread
             while (!(*this->available_num));
 
-            MPI_Send(&this->rank, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
+            request[0] = 0;
+            request[1] = this->rank;
+            request[2] = 0;
+            MPI_Send(&request, 3, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
             MPI_Recv(&reducer_index, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD, &status);
 
             pthread_mutex_lock(this->lock);
@@ -121,8 +126,8 @@ void Worker::ThreadPool(int task) {
 
         // delete queue
         delete this->job;
-
-        // inform scheduler
-        MPI_Send(&flag, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
     }
+
+    // get termination signal from scheduler
+    MPI_Recv(&signal, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD, &status);
 }

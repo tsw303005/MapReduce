@@ -8,6 +8,7 @@
 #include <queue>
 #include <map>
 #include <unistd.h>
+#include <mpi.h>
 
 #define WAIT 0 // simulate true delay
 
@@ -29,6 +30,7 @@ struct Mapper {
     int delay;
     int rank;
     int worker_num;
+    int scheduler_index;
 };
 
 #endif
