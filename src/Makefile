@@ -1,33 +1,22 @@
-CC = mpicc
 CXX = mpicxx
-CXXFLAGS = -std=c++17 -O3
-LDFLAGS = -pthread
-PATH = /home/pp21/pp21s28/MapReduce/src/
-OBJS = main.o Mapper.o Reducer.o Worker.o Scheduler.o
-TARGET = MapReduce
+CXXFLAGS = -O3 -std=c++11 -pthread
 
+SRC_DIR = /home/pp21/pp21s28/MapReduce/src
+INCLUDE = /home/pp21/pp21s28/MapReduce/src
+OUT_DIR = /home/pp21/pp21s28/MapReduce/src
 
-.PHONY: all
-all: $(TARGET)
+SOURCES := $(wildcard $(SRC_DIR)/*.cc)
+OBJECTS := $(patsubst $(SRC_DIR)/%.cc, $(OUT_DIR)/%.o, $(SOURCES))
+BIN = MapReduce
 
-.PHONY: clean
+.PHONY: all clean
+
+all: $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $^ -o $(BIN)
+
+$(OUT_DIR)/%.o: $(SRC_DIR)/%.cpp
+	$(CXX) $(CXXFLAGS) -I${INCLUDE} -c $< -o $@
+
 clean:
-	rm -f $(TARGET)
-
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $(TARGET)
-
-Mapper.o: $(PATH)Mapper.cc $(PATH)Mapper.h
-	$(CXX) -c $(PATH)Mapper.cc $(PATH)Mapper.h
-
-Reducer.o: $(PATH)Reducer.cc $(PATH)Reducer.h
-	$(CXX) -c $(PATH)Reducer.cc $(PATH)Reducer.h
-
-Worker.o: $(PATH)Worker.cc $(PATH)Worker.h
-	$(CXX) -c $(PATH)Worker.cc $(PATH)Worker.h
-
-Scheduler.o: $(PATH)Scheduler.cc $(PATH)Scheduler.h
-	$(CXX) -c $(PATH)Scheduler.cc $(PATH)Scheduler.h
-
-main.o: $(PATH)main.cc
-	$(CXX) -c $<
+	rm $(OBJECTS)
+	rm $(BIN)
