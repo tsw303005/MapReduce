@@ -138,7 +138,6 @@ void Scheduler::AssignMapperTask() {
             }
             // assign mapper task to the node and consider its locality
             for (int i = 0; i < this->MapperTaskPool.size(); i++) {
-                // 起床記得處理 locality
                 if (request[1] == this->Locality[this->MapperTaskPool[i]] % this->worker_num) {
                     task_num = i;
                     break;
@@ -206,11 +205,13 @@ void Scheduler::AssignReducerTask() {
 }
 
 void Scheduler::EndWorkerExcecute(int num) {
+    MPI_Status status;
     int worker_index;
     int signal = 1;
 
     for (int i = 0; i < this->worker_num; i++) {
         MPI_Send(&signal, 1, MPI_INT, i, 1, MPI_COMM_WORLD);
+        MPI_Recv(&signal, 1, MPI_INT, i, 1, MPI_COMM_WORLD, &status);
     }
     std::string job_name = (!num) ? "Mapper" : "Reducer";
     std::cout << "[Info]: " << job_name << " Task terminate successfully\n";

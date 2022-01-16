@@ -9,7 +9,7 @@ parser.add_argument('--chunk-num')
 parser.add_argument('--output', '-o', required=True)
 # args = parser.parse_args('word --dims 5 10 --total-words 5 -o test.out'.split(' '))
 # args = parser.parse_args('chunk --chunk-size 15 -o test_locality.out'.split(' '))
-args = parser.parse_args()
+args = parser.parse_args('word --dims 5 10 --total-words 5 -o test.out'.split(' '))
 if args.action == 'word':
     with open('/home/pp21/pp21t00/hw4/words.txt') as in_file:
         word_list = in_file.read().split('\n')[:-1]
