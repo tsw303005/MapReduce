@@ -130,4 +130,5 @@ void Worker::ThreadPool(int task) {
 
     // get termination signal from scheduler
     MPI_Recv(&signal, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD, &status);
+    MPI_Send(&signal, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
 }

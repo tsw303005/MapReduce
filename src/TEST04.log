@@ -1,0 +1,44 @@
+1642326142881, Start_Job, TEST04, 2, 12, 10, 3, ./testcases/04.word, 5, ./testcases/04.loc, ./result_file/
+1642326142921, Dispatch_MapTask, 7, 0
+1642326142921, Dispatch_MapTask, 8, 0
+1642326142921, Dispatch_MapTask, 10, 0
+1642326142921, Dispatch_MapTask, 1, 0
+1642326142921, Dispatch_MapTask, 2, 0
+1642326142921, Dispatch_MapTask, 3, 0
+1642326142921, Dispatch_MapTask, 4, 0
+1642326142921, Dispatch_MapTask, 5, 0
+1642326142921, Dispatch_MapTask, 6, 0
+1642326142921, Dispatch_MapTask, 9, 0
+1642326142959, Complete_MapTask, 10, 0.0382475
+1642326142962, Complete_MapTask, 9, 0.0407243
+1642326142962, Complete_MapTask, 6, 0.0409307
+1642326142962, Complete_MapTask, 2, 0.0412751
+1642326142962, Complete_MapTask, 4, 0.041501
+1642326142963, Complete_MapTask, 8, 0.0420762
+1642326142963, Complete_MapTask, 3, 0.0424924
+1642326142964, Complete_MapTask, 1, 0.0430831
+1642326142965, Complete_MapTask, 7, 0.043883
+1642326142965, Complete_MapTask, 5, 0.0443562
+1642326142965, Start_Shuffle, 390
+1642326143114, Finish_Shuffle, 0.14829
+1642326143114, Dispatch_ReduceTask, 1, 0
+1642326143114, Dispatch_ReduceTask, 2, 1
+1642326143114, Dispatch_ReduceTask, 3, 0
+1642326143114, Dispatch_ReduceTask, 4, 1
+1642326143117, Complete_ReduceTask, 2, 0.00322454
+1642326143117, Dispatch_ReduceTask, 5, 1
+1642326143117, Complete_ReduceTask, 1, 0.0036798
+1642326143117, Dispatch_ReduceTask, 6, 0
+1642326143119, Complete_ReduceTask, 4, 0.00543713
+1642326143119, Dispatch_ReduceTask, 7, 1
+1642326143120, Complete_ReduceTask, 3, 0.00645741
+1642326143120, Dispatch_ReduceTask, 8, 0
+1642326143121, Complete_ReduceTask, 5, 0.00364701
+1642326143121, Dispatch_ReduceTask, 9, 1
+1642326143123, Complete_ReduceTask, 7, 0.0034012
+1642326143123, Dispatch_ReduceTask, 10, 1
+1642326143123, Complete_ReduceTask, 6, 0.00520204
+1642326143124, Complete_ReduceTask, 9, 0.00377356
+1642326143126, Complete_ReduceTask, 8, 0.00547442
+1642326143126, Complete_ReduceTask, 10, 0.00355672
+1642326143126, Finish_Job, 0.245006
