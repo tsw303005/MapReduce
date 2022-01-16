@@ -45,19 +45,22 @@ void* ReducerFunction(void* input) {
             request[0] = 1;
             request[1] = reducer->rank;
             request[2] = task;
-            MPI_Send(&request, 3, MPI_INT, reducer->scheduler_index, 1, MPI_COMM_WORLD);
+            pthread_mutex_lock(reducer->send_lock);
+            MPI_Send(request, 3, MPI_INT, reducer->scheduler_index, 0, MPI_COMM_WORLD);
+            pthread_mutex_unlock(reducer->send_lock);
 
             // job terminate
             pthread_mutex_lock(reducer->lock);
             (*reducer->available_num) += 1;
             pthread_mutex_unlock(reducer->lock);
+
             task = -1;
         }
     }
 
-    free(word_count);
-    free(total);
-    free(group);
+    delete word_count;
+    delete total;
+    delete group;
     pthread_exit(NULL);
 }
 
@@ -107,7 +110,7 @@ void ReadFile(int num_reducer, int task, Total *total) {
     input_file.close();
 
     char *f;
-    f = new char[filename.length() + 1];
+    f = (char*)malloc(sizeof(char) * (filename.length() + 1));
     for (int i = 0; i < filename.length(); i++)
         f[i] = filename[i];
     

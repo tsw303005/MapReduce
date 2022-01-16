@@ -29,6 +29,7 @@ void Output(Count *word_count, int task, std::string job_name, std::string outpu
 
 struct Reducer {
     pthread_mutex_t *lock;
+    pthread_mutex_t *send_lock;
     std::string job_name;
     std::string output_dir;
     std::queue<int> *job;

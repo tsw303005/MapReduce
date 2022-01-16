@@ -20,11 +20,12 @@ Worker::Worker(int cpus, int mapper_num, int rank, int size, int chunk_size,
     this->lock = new pthread_mutex_t;
     this->available_num = new int;
     pthread_mutex_init(this->lock, NULL);
+    pthread_mutex_init(this->send_lock, NULL);
 }
 
 Worker::~Worker() {
-    delete this->threads;
     pthread_mutex_destroy(this->lock);
+    pthread_mutex_destroy(this->send_lock);
     std::cout << "[Info]: Worker "<< this->rank << " terminate\n";
 }
 
@@ -34,16 +35,16 @@ void Worker::ThreadPool(int task) {
     int signal = 1;
     int request[3];
 
-    this->job = new std::queue<int>;
-
     if (task == 1) { // mapper
-        int chunk_index;
+        int chunk_index[2];
         Mapper mapper;
 
+        this->job_mapper = new std::queue<Chunk>;
         *this->available_num = this->mapper_thread_number;
         mapper.available_num = this->available_num;
         mapper.lock = this->lock;
-        mapper.job = this->job;
+        mapper.send_lock = this->send_lock;
+        mapper.job = this->job_mapper;
         mapper.chunk_size = this->chunk_size;
         mapper.source_file = this->source_file;
         mapper.num_reducer = this->num_reducer;
@@ -60,18 +61,20 @@ void Worker::ThreadPool(int task) {
 
         while (!task_finished) {
             // check available thread number
-            while (!(*this->available_num));
+            while ((*this->available_num) == 0);
 
             request[0] = 0;
             request[1] = this->rank;
             request[2] = 0;
-            MPI_Send(&request, 3, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
-            MPI_Recv(&chunk_index, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD, &status);
+            pthread_mutex_lock(this->send_lock);
+            MPI_Send(request, 3, MPI_INT, this->scheduler_index, 0, MPI_COMM_WORLD);
+            pthread_mutex_unlock(this->send_lock);
+            MPI_Recv(chunk_index, 2, MPI_INT, this->scheduler_index, 0, MPI_COMM_WORLD, &status);
 
             pthread_mutex_lock(this->lock);
-            this->job->push(chunk_index);
+            this->job_mapper->push({chunk_index[0], chunk_index[1]});
             pthread_mutex_unlock(this->lock);
-            if (chunk_index == -1) { // mapper job done
+            if (chunk_index[0] == -1) { // mapper job done
                 task_finished = true;
             }
         }
@@ -82,16 +85,18 @@ void Worker::ThreadPool(int task) {
         }
 
         // delete queue
-        delete this->job;
+        delete this->job_mapper;
     } else if (task == 2) { // reducer
         int reducer_index;
         Reducer reducer;
 
+        this->job_reducer = new std::queue<int>;
         *this->available_num = this->reducer_thread_number;
         reducer.available_num = this->available_num;
         reducer.num_reducer = this->num_reducer;
         reducer.lock = this->lock;
-        reducer.job = this->job;
+        reducer.send_lock = this->send_lock;
+        reducer.job = this->job_reducer;
         reducer.job_name = this->job_name;
         reducer.output_dir = this->output_dir;
         reducer.scheduler_index = this->scheduler_index;
@@ -108,11 +113,13 @@ void Worker::ThreadPool(int task) {
             request[0] = 0;
             request[1] = this->rank;
             request[2] = 0;
-            MPI_Send(&request, 3, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
-            MPI_Recv(&reducer_index, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD, &status);
+            pthread_mutex_lock(this->send_lock);
+            MPI_Send(request, 3, MPI_INT, this->scheduler_index, 0, MPI_COMM_WORLD);
+            pthread_mutex_unlock(this->send_lock);
+            MPI_Recv(&reducer_index, 1, MPI_INT, this->scheduler_index, 0, MPI_COMM_WORLD, &status);
 
             pthread_mutex_lock(this->lock);
-            this->job->push(reducer_index);
+            this->job_reducer->push(reducer_index);
             pthread_mutex_unlock(this->lock);
             if (reducer_index == -1) { // reducer job done
                 task_finished = true;
@@ -125,10 +132,8 @@ void Worker::ThreadPool(int task) {
         }
 
         // delete queue
-        delete this->job;
+        delete this->job_reducer;
     }
 
-    // get termination signal from scheduler
-    MPI_Recv(&signal, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD, &status);
-    MPI_Send(&signal, 1, MPI_INT, this->scheduler_index, 1, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
 }

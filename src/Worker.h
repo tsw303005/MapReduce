@@ -28,11 +28,13 @@ private:
 
     pthread_t *threads;
     pthread_mutex_t *lock;
+    pthread_mutex_t *send_lock;
 
     std::string source_file;
     std::string job_name;
     std::string output_dir;
-    std::queue<int> *job;
+    std::queue<Chunk> *job_mapper;
+    std::queue<int> *job_reducer;
 };
 
 #endif

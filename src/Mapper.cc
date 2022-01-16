@@ -2,17 +2,19 @@
 
 void* MapperFunction(void* input) {
     Mapper *mapper = (Mapper*)input;
-    int chunk = -1;
+    Chunk chunk;
     int request[3];
     bool flag = true;
     Count *word_count = new Count;
     Word *words = new Word;
 
+    chunk.first = -1;
+    chunk.second = 0;
     while (flag) {
         pthread_mutex_lock(mapper->lock);
         if (!mapper->job->empty()) {
-            chunk = mapper->job->front();
-            if (chunk == -1) {
+            chunk.first = mapper->job->front().first;
+            if (chunk.first == -1) {
                 flag = false;
             } else {
                 (*mapper->available_num) -= 1;
@@ -21,16 +23,16 @@ void* MapperFunction(void* input) {
         }
         pthread_mutex_unlock(mapper->lock);
 
-        if (chunk != -1) {
-            if (chunk % mapper->worker_num != mapper->rank && WAIT) { // not locality file
-                std::cout << "[Info]: One thread sleep\n";
+        if (chunk.first != -1) {
+            if (chunk.second % mapper->worker_num != mapper->rank && WAIT) { // not locality file
+                //std::cout << "[Info]: One thread sleep\n";
                 sleep(mapper->delay);
             }
             word_count->clear();
             words->clear();
             
             // split chunk
-            InputSplit(chunk, mapper->chunk_size, mapper->source_file, word_count, words);
+            InputSplit(chunk.first, mapper->chunk_size, mapper->source_file, word_count, words);
 
             // get word partition
             std::vector<std::vector<std::string>> split_result(mapper->num_reducer+1);
@@ -39,7 +41,7 @@ void* MapperFunction(void* input) {
             }
             // generate intermediate file
             for (int i = 1; i <= mapper->num_reducer; i++) {
-                std::string chunk_str = std::to_string(chunk);
+                std::string chunk_str = std::to_string(chunk.first);
                 std::string reducer_num_str = std::to_string(i);
                 std::string filename = "./intermediate_file/" + chunk_str + "_" + reducer_num_str + ".txt";
                 std::ofstream myfile(filename);
@@ -51,19 +53,22 @@ void* MapperFunction(void* input) {
 
             request[0] = 1;
             request[1] = mapper->rank;
-            request[2] = chunk;
-            MPI_Send(&request, 3, MPI_INT, mapper->scheduler_index, 1, MPI_COMM_WORLD);
+            request[2] = chunk.first;
+            pthread_mutex_lock(mapper->send_lock);
+            MPI_Send(request, 3, MPI_INT, mapper->scheduler_index, 0, MPI_COMM_WORLD);
+            pthread_mutex_unlock(mapper->send_lock);
 
             // job terminate
             pthread_mutex_lock(mapper->lock);
             (*mapper->available_num) += 1;
             pthread_mutex_unlock(mapper->lock);
-            chunk = -1;
+            
+            chunk.first = -1;
         }
     }
 
-    free(word_count);
-    free(words);
+    delete word_count;
+    delete words;
     pthread_exit(NULL);
 }
 

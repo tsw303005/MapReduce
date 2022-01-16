@@ -28,6 +28,7 @@ Scheduler::~Scheduler() {
     std::cout << "[Info]: Total cost time: " << this->execution_time << "\n";
     *this->write_log << GetTime() << ", Finish_Job" << ", " << MPI_Wtime() - this->start_time << "\n";
     this->write_log->close();
+    delete this->write_log;
 }
 
 void Scheduler::Shuffle() {
@@ -60,9 +61,9 @@ void Scheduler::Shuffle() {
             input_file.close();
 
             char *f;
-            f = new char[filename.length() + 1];
-            for (int i = 0; i < filename.length(); i++)
-                f[i] = filename[i];
+            f = (char*)malloc(sizeof(char) * (filename.length()+1));
+            for (int k = 0; k < filename.length(); k++)
+                f[k] = filename[k];
             
             f[filename.length()] = '\0';
             
@@ -119,7 +120,7 @@ void Scheduler::AssignMapperTask() {
     MPI_Status status;
     int request[3]; // 0: request, 1: node index, 2: finished job index
     int task_num;
-    int task;
+    int task[2];
     int termination_signal = -1;
     int check = 1;
     int finish_job_num = this->MapperTaskPool.size();
@@ -128,31 +129,35 @@ void Scheduler::AssignMapperTask() {
 
     while (!this->MapperTaskPool.empty() || finish_job_num > 0) {
         // receive request
-        MPI_Recv(&request, 3, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-
+        MPI_Recv(request, 3, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
         if (request[0] == 0) { // request job
             // if no mapper job, send terminal signal
             if (this->MapperTaskPool.empty()) {
-                MPI_Send(&termination_signal, 1, MPI_INT, request[1], 1, MPI_COMM_WORLD);
+                task[0] = -1;
+                task[1] = 0;
+                MPI_Send(task, 2, MPI_INT, request[1], 0, MPI_COMM_WORLD);
                 continue;
-            }
-            // assign mapper task to the node and consider its locality
-            for (int i = 0; i < this->MapperTaskPool.size(); i++) {
-                if (request[1] == this->Locality[this->MapperTaskPool[i]] % this->worker_num) {
-                    task_num = i;
-                    break;
-                } else if (i == this->MapperTaskPool.size() - 1) task_num = 0, this->execution_time += this->delay;
-            }
-            task = this->MapperTaskPool[task_num];
-            this->MapperTaskPool.erase(this->MapperTaskPool.begin() + task_num);
 
-            // Send task to the worker
-            MPI_Send(&task, 1, MPI_INT, request[1], 1, MPI_COMM_WORLD);
+            } else {
+                // assign mapper task to the node and consider its locality
+                for (int i = 0; i < this->MapperTaskPool.size(); i++) {
+                    if (request[1] == this->Locality[this->MapperTaskPool[i]] % this->worker_num) {
+                        task_num = i;
+                        break;
+                    } else if (i == this->MapperTaskPool.size() - 1) task_num = 0, this->execution_time += this->delay;
+                }
+                task[0] = this->MapperTaskPool[task_num];
+                task[1] = this->Locality[this->MapperTaskPool[task[0]]] % this->worker_num;
+                this->MapperTaskPool.erase(this->MapperTaskPool.begin() + task_num);
 
-            // record log
-            *this->write_log << GetTime() << ", Dispatch_MapTask, " << task << ", " << request[1] << "\n";
-            // record time
-            this->RecordTime[task] = MPI_Wtime();
+                // Send task to the worker
+                MPI_Send(task, 2, MPI_INT, request[1], 0, MPI_COMM_WORLD);
+
+                // record log
+                *this->write_log << GetTime() << ", Dispatch_MapTask, " << task << ", " << request[1] << "\n";
+                // record time
+                this->RecordTime[task[0]] = MPI_Wtime();
+            }
         } else if (request[0] == 1) { // tell job done
             this->RecordTime[request[2]] = MPI_Wtime() - this->RecordTime[request[2]];
             // record log
@@ -161,8 +166,10 @@ void Scheduler::AssignMapperTask() {
         }
     }
 
+    MPI_Barrier(MPI_COMM_WORLD);
+
     // end other worker
-    this->EndWorkerExcecute(0);
+    // this->EndWorkerExcecute(0);
 }
 
 void Scheduler::AssignReducerTask() {
@@ -176,10 +183,10 @@ void Scheduler::AssignReducerTask() {
 
     while (!this->ReducerTaskPool.empty() || finish_job_num > 0) {
         // receive reducer thread from any node
-        MPI_Recv(&request, 3, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        MPI_Recv(request, 3, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
         if (request[0] == 0) {
             if (this->ReducerTaskPool.empty()) {
-                MPI_Send(&termination_signal, 1, MPI_INT, request[1], 1, MPI_COMM_WORLD);
+                MPI_Send(&termination_signal, 1, MPI_INT, request[1], 0, MPI_COMM_WORLD);
                 continue;
             }
             // assign reducer task
@@ -187,7 +194,7 @@ void Scheduler::AssignReducerTask() {
             this->ReducerTaskPool.pop();
 
             // Send task to the worker
-            MPI_Send(&task, 1, MPI_INT, request[1], 1, MPI_COMM_WORLD);
+            MPI_Send(&task, 1, MPI_INT, request[1], 0, MPI_COMM_WORLD);
             // record log
             *this->write_log << GetTime() << ", Dispatch_ReduceTask, " << task << ", " << request[1] << "\n";
             // record time
@@ -200,8 +207,9 @@ void Scheduler::AssignReducerTask() {
         }
     }
 
+    MPI_Barrier(MPI_COMM_WORLD);
     // end
-    this->EndWorkerExcecute(1);
+    // this->EndWorkerExcecute(1);
 }
 
 void Scheduler::EndWorkerExcecute(int num) {
@@ -210,8 +218,8 @@ void Scheduler::EndWorkerExcecute(int num) {
     int signal = 1;
 
     for (int i = 0; i < this->worker_num; i++) {
-        MPI_Send(&signal, 1, MPI_INT, i, 1, MPI_COMM_WORLD);
-        MPI_Recv(&signal, 1, MPI_INT, i, 1, MPI_COMM_WORLD, &status);
+        MPI_Send(&signal, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+        MPI_Recv(&signal, 1, MPI_INT, i, 0, MPI_COMM_WORLD, &status);
     }
     std::string job_name = (!num) ? "Mapper" : "Reducer";
     std::cout << "[Info]: " << job_name << " Task terminate successfully\n";
