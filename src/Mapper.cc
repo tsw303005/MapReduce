@@ -1,30 +1,30 @@
 #include "Mapper.h"
 
 void* MapperFunction(void* input) {
-    Mapper *mapper = (Mapper*)input;
-    Chunk chunk;
-    int request[3];
-    bool flag = true;
+    Worker *mapper = (Worker*)(input);
     Count *word_count = new Count;
     Word *words = new Word;
+    Chunk chunk;
+    int request[2];
+    bool flag = true;
 
     chunk.first = -1;
     chunk.second = 0;
     while (flag) {
         pthread_mutex_lock(mapper->lock);
-        if (!mapper->job->empty()) {
-            chunk.first = mapper->job->front().first;
+        if (!mapper->job_mapper->empty()) {
+            chunk.first = mapper->job_mapper->front().first;
             if (chunk.first == -1) {
                 flag = false;
             } else {
                 (*mapper->available_num) -= 1;
-                mapper->job->pop();
+                mapper->job_mapper->pop();
             }
         }
         pthread_mutex_unlock(mapper->lock);
 
         if (chunk.first != -1) {
-            if (chunk.second % mapper->worker_num != mapper->rank && WAIT) { // not locality file
+            if (chunk.second != mapper->rank && WAIT) { // not locality file
                 //std::cout << "[Info]: One thread sleep\n";
                 sleep(mapper->delay);
             }
@@ -52,10 +52,9 @@ void* MapperFunction(void* input) {
             }
 
             request[0] = 1;
-            request[1] = mapper->rank;
-            request[2] = chunk.first;
+            request[1] = chunk.first;
             pthread_mutex_lock(mapper->send_lock);
-            MPI_Send(request, 3, MPI_INT, mapper->scheduler_index, 0, MPI_COMM_WORLD);
+            MPI_Send(request, 2, MPI_INT, mapper->scheduler_index, 0, MPI_COMM_WORLD);
             pthread_mutex_unlock(mapper->send_lock);
 
             // job terminate

@@ -3,7 +3,7 @@
 void* ReducerFunction(void* input) {
     Reducer* reducer = (Reducer*)input;
     int task = -1;
-    int request[3];
+    int request[2];
     bool flag = true;
     Count *word_count = new Count;
     Total *total = new Total;
@@ -43,10 +43,9 @@ void* ReducerFunction(void* input) {
             Output(word_count, task, reducer->job_name, reducer->output_dir);
 
             request[0] = 1;
-            request[1] = reducer->rank;
-            request[2] = task;
+            request[1] = task;
             pthread_mutex_lock(reducer->send_lock);
-            MPI_Send(request, 3, MPI_INT, reducer->scheduler_index, 0, MPI_COMM_WORLD);
+            MPI_Send(request, 2, MPI_INT, reducer->scheduler_index, 0, MPI_COMM_WORLD);
             pthread_mutex_unlock(reducer->send_lock);
 
             // job terminate

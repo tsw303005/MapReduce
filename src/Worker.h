@@ -2,35 +2,50 @@
 #define WORKER_H
 
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
 #include <queue>
+#include <utility>
+#include <cstdio>
+#include <algorithm>
+#include <map>
 #include <mpi.h>
 #include <pthread.h>
-#include "Reducer.h"
-#include "Mapper.h"
 
 class Worker {
 public:
-    Worker(int cpus, int mapper_num, int rank, int size, int chunk_size,
-            int num_reducer, int delay, std::string source_file, std::string job_name, std::string output_dir);
+    Worker(char **argv, int cpu_num, int rank, int size);
     ~Worker();
-    void ThreadPool(int task);
+    void ThreadPoolMapper();
+    void ThreadPoolReducer();
+    void InputSplit();
+    void Group();
+    void Reduce();
+    void Output();
+    void Sort();
+    void Map();
+    void* MapperFunction(void* input);
+    void* ReducerFunction(void* input);
+    int Partition(); 
 
 private:
-    int rank;
+    int available_num; // check availabl thread
     int mapper_thread_number;
     int reducer_thread_number; // to tell from num_reducer
-    int node_num;
     int scheduler_index;
-    int chunk_size;
     int num_reducer;
+    int chunk_size;
+    int node_num;
+    int cpu_num;
     int delay;
-    int *available_num; // check availabl thread
+    int rank;
 
     pthread_t *threads;
     pthread_mutex_t *lock;
     pthread_mutex_t *send_lock;
 
-    std::string source_file;
+    std::string input_filename;
     std::string job_name;
     std::string output_dir;
     std::queue<Chunk> *job_mapper;
