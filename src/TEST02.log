@@ -1,32 +1,34 @@
-1642415512601, Start_Job, TEST02, 1, 12, 7, 2, ./testcases/02.word, 2, ./testcases/02.loc, ./result_file/
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512638, Dispatch_MapTask, 0x7ffeb288cbc8, 0
-1642415512655, Complete_MapTask, 1, 0.0168919
-1642415512657, Complete_MapTask, 2, 0.01864
-1642415512658, Complete_MapTask, 3, 0.0199058
-1642415512658, Complete_MapTask, 6, 0.0200336
-1642415512659, Complete_MapTask, 11, 0.0203675
-1642415512659, Complete_MapTask, 9, 0.0208569
-1642415512661, Complete_MapTask, 4, 0.0222225
-1642415512661, Complete_MapTask, 10, 0.0224707
-1642415512661, Complete_MapTask, 7, 0.0228513
-1642415512662, Complete_MapTask, 5, 0.023278
-1642415512662, Complete_MapTask, 8, 0.0240269
-1642415512666, Complete_MapTask, 13, 0.0274252
-1642415512667, Complete_MapTask, 14, 0.0282453
-1642415512667, Complete_MapTask, 15, 0.0284072
-1642415512667, Complete_MapTask, 12, 0.0285637
-1642415512667, Finish_Job, 0.0677625
+1642575283791, Start_Job, TEST02, 1, 12, 7, 2, ./testcases/02.word, 2, ./testcases/02.loc, ./result_file/
+1642575283829, Dispatch_MapTask, 1, 0
+1642575283829, Dispatch_MapTask, 2, 0
+1642575283829, Dispatch_MapTask, 3, 0
+1642575283829, Dispatch_MapTask, 4, 0
+1642575283829, Dispatch_MapTask, 5, 0
+1642575283829, Dispatch_MapTask, 6, 0
+1642575283829, Dispatch_MapTask, 7, 0
+1642575283829, Dispatch_MapTask, 8, 0
+1642575283829, Dispatch_MapTask, 9, 0
+1642575283829, Dispatch_MapTask, 10, 0
+1642575283829, Dispatch_MapTask, 11, 0
+1642575283829, Dispatch_MapTask, 12, 0
+1642575283829, Dispatch_MapTask, 13, 0
+1642575283829, Dispatch_MapTask, 14, 0
+1642575283829, Dispatch_MapTask, 15, 0
+1642575283878, Complete_MapTask, 8, 0.0487738
+1642575283878, Complete_MapTask, 1, 0.0488686
+1642575283878, Complete_MapTask, 9, 0.0487954
+1642575283878, Complete_MapTask, 3, 0.0488501
+1642575283878, Complete_MapTask, 6, 0.0488233
+1642575283878, Complete_MapTask, 5, 0.0488401
+1642575283878, Complete_MapTask, 2, 0.0488685
+1642575283878, Complete_MapTask, 11, 0.0487964
+1642575283878, Complete_MapTask, 7, 0.0488297
+1642575283878, Complete_MapTask, 10, 0.048809
+1642575283878, Complete_MapTask, 4, 0.0488663
+1642575283878, Complete_MapTask, 12, 0.0488037
+1642575283878, Complete_MapTask, 14, 0.0487952
+1642575283878, Complete_MapTask, 13, 0.048805
+1642575283878, Complete_MapTask, 15, 0.0487985
+1642575283878, Start_Shuffle, 270
+1642575284061, Finish_Shuffle, 0.182434
+1642575284061, Finish_Job, 0.270792

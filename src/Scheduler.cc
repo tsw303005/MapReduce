@@ -1,5 +1,4 @@
 #include "Scheduler.h"
-#include "Reducer.h"
 
 Scheduler::Scheduler(char **argv, int cpu_num, int rank, int size) {
     std::string log_file_name;
@@ -165,7 +164,7 @@ void Scheduler::AssignMapperTask() {
             } else {
                 // assign mapper task to the node and consider its locality
                 for (int i = 0; i < this->MapperTaskPool.size(); i++) {
-                    if (request[1] == this->Locality[this->MapperTaskPool[i]]) {
+                    if (status.MPI_SOURCE == this->Locality[this->MapperTaskPool[i]]) {
                         task_index = i;
                         break;
                     } else if (i == this->MapperTaskPool.size() - 1) task_index = 0;
@@ -178,7 +177,7 @@ void Scheduler::AssignMapperTask() {
                 MPI_Send(task, 2, MPI_INT, status.MPI_SOURCE, 0, MPI_COMM_WORLD);
 
                 // record dispatch job event
-                *this->write_log << GetTime() << ", Dispatch_MapTask, " << task << ", " << request[1] << "\n";
+                *this->write_log << GetTime() << ", Dispatch_MapTask, " << task[0] << ", " << request[1] << "\n";
                 // record this job start time
                 this->RecordTime[task[0]] = MPI_Wtime();
             }
@@ -208,19 +207,20 @@ void Scheduler::AssignReducerTask() {
         if (request[0] == 0) {
             if (this->ReducerTaskPool.empty()) {
                 MPI_Send(&termination_signal, 1, MPI_INT, status.MPI_SOURCE, 0, MPI_COMM_WORLD);
-            }
-            // assign reducer task
-            task = this->ReducerTaskPool.front();
-            this->ReducerTaskPool.pop();
+            } else {
+                // assign reducer task
+                task = this->ReducerTaskPool.front();
+                this->ReducerTaskPool.pop();
 
-            // Send task to the worker
-            MPI_Send(&task, 1, MPI_INT, status.MPI_SOURCE, 0, MPI_COMM_WORLD);
-            // record dispatch event
-            *this->write_log << GetTime() << ", Dispatch_ReduceTask, " << task << ", " << request[1] << "\n";
-            // record time
-            this->RecordTime[task] = MPI_Wtime();
+                // Send task to the worker
+                MPI_Send(&task, 1, MPI_INT, status.MPI_SOURCE, 0, MPI_COMM_WORLD);
+                // record dispatch event
+                *this->write_log << GetTime() << ", Dispatch_ReduceTask, " << task << ", " << request[1] << "\n";
+                // record time
+                this->RecordTime[task] = MPI_Wtime();
+            }
         } else if (request[0] == 1) {
-            this->RecordTime[request[2]] = MPI_Wtime() - this->RecordTime[request[1]];
+            this->RecordTime[request[1]] = MPI_Wtime() - this->RecordTime[request[1]];
             // record complete event
             *this->write_log << GetTime() << ", Complete_ReduceTask, " << request[1] << ", " << this->RecordTime[request[1]] << "\n";
             finish_job_num -= 1;

@@ -10,6 +10,7 @@
 #include <queue>
 #include <mpi.h>
 #include <sys/time.h>
+#include "Tool.h"
 
 class Scheduler {
 public:

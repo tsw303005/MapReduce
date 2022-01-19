@@ -33,11 +33,11 @@ int main(int argc, char **argv) {
         Scheduler scheduler(argv, ncpus, rank, size);
         scheduler.GetMapperTask();
         scheduler.AssignMapperTask();
-        // scheduler.Shuffle();
+        scheduler.Shuffle();
         // scheduler.GetReducerTask();
         // scheduler.AssignReducerTask();
     } else { // worker
-        Worker worker(ncpus, ncpus - 1, rank, size, chunk_size, num_reducer, delay, input_filename, job_name, output_dir);
+        Worker worker(argv, ncpus, rank, size);
         worker.ThreadPoolMapper(); // mapper task
         // worker.ThreadPool(2); // reducer task
     }

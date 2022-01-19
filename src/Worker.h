@@ -9,9 +9,13 @@
 #include <utility>
 #include <cstdio>
 #include <algorithm>
-#include <map>
+#include <mutex>
 #include <mpi.h>
+#include <unistd.h>
 #include <pthread.h>
+#include "Tool.h"
+
+#define WAIT 0
 
 class Worker {
 public:
@@ -19,15 +23,15 @@ public:
     ~Worker();
     void ThreadPoolMapper();
     void ThreadPoolReducer();
-    void InputSplit();
+    void InputSplit(int chunk, Count *word_count, Word *words);
     void Group();
     void Reduce();
     void Output();
     void Sort();
-    void Map();
-    void* MapperFunction(void* input);
-    void* ReducerFunction(void* input);
-    int Partition(); 
+    void Map(std::string line, Count *word_count, Word *words);
+    static void* MapperFunction(void* input);
+    static void* ReducerFunction(void* input);
+    int Partition(int num_reducer, std::string word);
 
 private:
     int available_num; // check availabl thread
@@ -42,14 +46,14 @@ private:
     int rank;
 
     pthread_t *threads;
-    pthread_mutex_t *lock;
-    pthread_mutex_t *send_lock;
-
+    std::mutex *lock;
+    std::mutex *send_lock;
     std::string input_filename;
     std::string job_name;
     std::string output_dir;
     std::queue<Chunk> *job_mapper;
     std::queue<int> *job_reducer;
+    std::queue<int> *job_finished;
 };
 
 #endif

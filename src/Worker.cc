@@ -1,6 +1,4 @@
 #include "Worker.h"
-#include "Mapper.h"
-#include "Reducer.h"
 
 Worker::Worker(char **argv, int cpu_num, int rank, int size) {
     this->job_name = std::string(argv[1]);
@@ -10,7 +8,6 @@ Worker::Worker(char **argv, int cpu_num, int rank, int size) {
     this->chunk_size = std::stoi(argv[5]);
     this->output_dir = std::string(argv[7]);
     this->rank = rank;
-    this->size = size;
     this->cpu_num = cpu_num;
     this->node_num = rank;
     this->available_num = 0;
@@ -18,15 +15,13 @@ Worker::Worker(char **argv, int cpu_num, int rank, int size) {
     this->mapper_thread_number = cpu_num - 1;
     this->reducer_thread_number = 1;
     this->threads = new pthread_t[cpu_num];
-    this->lock = new pthread_mutex_t;
-    this->send_lock = new pthread_mutex_t;
-    pthread_mutex_init(this->lock, NULL);
-    pthread_mutex_init(this->send_lock, NULL);
+    this->lock = new std::mutex;
+    this->send_lock = new std::mutex;
 }
 
 Worker::~Worker() {
-    pthread_mutex_destroy(this->lock);
-    pthread_mutex_destroy(this->send_lock);
+    delete this->lock;
+    delete this->send_lock;
     std::cout << "[Info]: Worker "<< this->rank << " terminate\n";
 }
 
@@ -36,30 +31,30 @@ void Worker::ThreadPoolMapper() {
     int signal = 1;
     int request[2];
     int chunk_index[2];
-    Mapper mapper;
 
     this->job_mapper = new std::queue<Chunk>;
+    this->job_finished = new std::queue<int>;
 
     // allocate mapper thread
     for (int i = 0; i < this->mapper_thread_number; i++) {
-        pthread_create(&this->threads[i], NULL, &MapperFunction, (void*)this);
+        pthread_create(&this->threads[i], NULL, Worker::MapperFunction, (void*)this);
     }
 
     while (!task_finished) {
         // check available thread number
-        while ((*this->available_num) == 0);
+        while (this->available_num == 0);
 
         request[0] = 0;
         request[1] = 0;
-        pthread_mutex_lock(this->send_lock);
         MPI_Send(request, 2, MPI_INT, this->scheduler_index, 0, MPI_COMM_WORLD);
-        pthread_mutex_unlock(this->send_lock);
         MPI_Recv(chunk_index, 2, MPI_INT, this->scheduler_index, 0, MPI_COMM_WORLD, &status);
 
-        pthread_mutex_lock(this->lock);
+        this->lock->lock();
         this->job_mapper->push({chunk_index[0], chunk_index[1]});
-        pthread_mutex_unlock(this->lock);
-        if (chunk_index[0] == -1) { // mapper job done
+        this->lock->unlock();
+        
+        // mapper job done
+        if (chunk_index[0] == -1) {
             task_finished = true;
         }
     }
@@ -69,8 +64,16 @@ void Worker::ThreadPoolMapper() {
         pthread_join(this->threads[i], NULL);
     }
 
+    while (!this->job_finished->empty()) {
+        request[0] = 1;
+        request[1] = this->job_finished->front();
+        MPI_Send(request, 2, MPI_INT, this->scheduler_index, 0, MPI_COMM_WORLD);
+        this->job_finished->pop();
+    }
+
     // delete queue
     delete this->job_mapper;
+    delete this->job_finished;
     MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -80,39 +83,26 @@ void Worker::ThreadPoolReducer() {
     int signal = 1;
     int request[2];
     int reducer_index;
-    
-    Reducer reducer;
 
     this->job_reducer = new std::queue<int>;
-    *this->available_num = this->reducer_thread_number;
-    reducer.available_num = this->available_num;
-    reducer.num_reducer = this->num_reducer;
-    reducer.lock = this->lock;
-    reducer.send_lock = this->send_lock;
-    reducer.job = this->job_reducer;
-    reducer.job_name = this->job_name;
-    reducer.output_dir = this->output_dir;
-    reducer.scheduler_index = this->scheduler_index;
-    reducer.rank = this->rank;
 
     for (int i = 0; i < this->reducer_thread_number; i++) {
-        pthread_create(&this->threads[i], NULL, &ReducerFunction, &reducer);
+        pthread_create(&this->threads[i], NULL, Worker::ReducerFunction, this);
     }
 
     while (!task_finished) {
         // check available thread
-        while (!(*this->available_num));
+        while (this->available_num);
 
         request[0] = 0;
         request[1] = 0;
-        pthread_mutex_lock(this->send_lock);
         MPI_Send(request, 2, MPI_INT, this->scheduler_index, 0, MPI_COMM_WORLD);
-        pthread_mutex_unlock(this->send_lock);
         MPI_Recv(&reducer_index, 1, MPI_INT, this->scheduler_index, 0, MPI_COMM_WORLD, &status);
 
-        pthread_mutex_lock(this->lock);
+        this->lock->lock();
         this->job_reducer->push(reducer_index);
-        pthread_mutex_unlock(this->lock);
+        this->lock->unlock();
+        
         if (reducer_index == -1) { // reducer job done
             task_finished = true;
         }
@@ -126,4 +116,116 @@ void Worker::ThreadPoolReducer() {
     // delete queue
     delete this->job_reducer;
     MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void* Worker::MapperFunction(void *input) {
+    Worker *mapper = (Worker*)input;
+    Count *word_count = new Count;
+    Word *words = new Word;
+    Chunk chunk;
+    bool task_finished = false;
+
+    while (!task_finished) {
+        chunk.first = -1;
+        mapper->lock->lock();
+        if (!mapper->job_mapper->empty()) {
+            chunk = mapper->job_mapper->front();
+            if (chunk.first == -1) {
+                task_finished = true;
+            } else {
+                mapper->available_num -= 1;
+                mapper->job_mapper->pop();
+            }
+        }
+        mapper->lock->unlock();
+
+        if (chunk.first != -1) {
+            if (chunk.second != mapper->rank && WAIT) {
+                sleep(mapper->delay);
+            }
+            word_count->clear();
+            words->clear();
+
+            // Input Split
+            mapper->InputSplit(chunk.first, word_count, words);
+
+            // get word partition number
+            std::vector<std::vector<std::string>> split_result(mapper->num_reducer + 1);
+            for (auto word : *words) {
+                split_result[mapper->Partition(mapper->num_reducer, word)].push_back(word);
+            }
+
+            // generate intermediate file
+            for (int i = 1; i <= mapper->num_reducer; i++) {
+                std::string chunk_str = std::to_string(chunk.first);
+                std::string reducer_num_str = std::to_string(i);
+                std::string filename = "./intermediate_file/" + chunk_str + "_" + reducer_num_str + ".txt";
+                std::ofstream myfile(filename);
+                for (auto word : split_result[i]) {
+                    myfile << word << " " << (*word_count)[word] << "\n";
+                }
+                myfile.close();
+            }
+
+            mapper->lock->lock();
+            mapper->job_finished->push(chunk.first);
+            mapper->available_num += 1;
+            mapper->lock->unlock();
+        }
+    }
+
+    delete word_count;
+    delete words;
+    pthread_exit(NULL);
+}
+
+void Worker::InputSplit(int chunk, Count *word_count, Word *words) {
+    int start_pos = 1 + (chunk - 1) * this->chunk_size;
+
+    // read chunk file
+    std::ifstream input_file(this->input_filename);
+    std::string line;
+
+    // find the chunk start position
+    for (int i = 1; i < start_pos; i++) {
+        getline(input_file, line);
+    }
+
+    for (int i = 1; i <= this->chunk_size; i++) {
+        getline(input_file, line);
+        this->Map(line, word_count, words);
+    }
+    input_file.close();
+}
+
+void Worker::Map(std::string line, Count *word_count, Word *words) {
+    int pos = 0;
+    std::string word;
+    std::vector<std::string> tmp_words;
+
+    while ((pos = line.find(" ")) != std::string::npos) {
+        word = line.substr(0, pos);
+        tmp_words.push_back(word);
+        line.erase(0, pos + 1);
+    }
+
+    if (!line.empty())
+        tmp_words.push_back(line);
+
+    for (auto w : tmp_words) {
+        if (word_count->count(w) == 0) {
+            words->push_back(w);
+            (*word_count)[w] = 1;
+        } else {
+            (*word_count)[w] += 1;
+        }
+    }
+}
+
+int Worker::Partition(int num_reducer, std::string word) {
+    return ((word.length() % num_reducer) + 1);
+}
+
+void* Worker::ReducerFunction(void* input) {
+    
 }
