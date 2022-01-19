@@ -30,16 +30,16 @@ int main(int argc, char **argv) {
     int chunk_size = std::stoi(argv[5]);
 
     if (rank == size - 1) { // Scheduler
-        Scheduler scheduler(delay, size - 1, job_name, argv, rank, ncpus);
-        scheduler.GetMapperTask(locality_config_filename);
+        Scheduler scheduler(argv, ncpus, rank, size);
+        scheduler.GetMapperTask();
         scheduler.AssignMapperTask();
         scheduler.Shuffle();
         scheduler.GetReducerTask();
         scheduler.AssignReducerTask();
     } else { // worker
-        Worker worker(ncpus, ncpus - 1, rank, size, chunk_size, num_reducer, delay, input_filename, job_name, output_dir);
-        worker.ThreadPool(1); // mapper task
-        worker.ThreadPool(2); // reducer task
+        Worker worker(argv, ncpus, rank, size);
+        worker.ThreadPoolMapper(); // mapper task
+        worker.ThreadPoolReducer(); // reducer task
     }
 
     return 0;
