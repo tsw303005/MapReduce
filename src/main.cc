@@ -34,12 +34,12 @@ int main(int argc, char **argv) {
         scheduler.GetMapperTask();
         scheduler.AssignMapperTask();
         scheduler.Shuffle();
-        // scheduler.GetReducerTask();
-        // scheduler.AssignReducerTask();
+        scheduler.GetReducerTask();
+        scheduler.AssignReducerTask();
     } else { // worker
         Worker worker(argv, ncpus, rank, size);
         worker.ThreadPoolMapper(); // mapper task
-        // worker.ThreadPool(2); // reducer task
+        worker.ThreadPoolReducer(); // reducer task
     }
 
     return 0;

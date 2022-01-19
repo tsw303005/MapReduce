@@ -24,13 +24,16 @@ public:
     void ThreadPoolMapper();
     void ThreadPoolReducer();
     void InputSplit(int chunk, Count *word_count, Word *words);
-    void Group();
-    void Reduce();
-    void Output();
-    void Sort();
+    void ReadFile(int task, Total *total);
+    void Sort(Total *total);
+    void Group(Total *toatl, Collect *group);
+    void Reduce(Collect *group, Count *word_count);
+    void Output(Count *word_count, int task);
     void Map(std::string line, Count *word_count, Word *words);
+    void DeleteFile(std::string filename);
     static void* MapperFunction(void* input);
     static void* ReducerFunction(void* input);
+    static bool cmp(Item a, Item b);
     int Partition(int num_reducer, std::string word);
 
 private:

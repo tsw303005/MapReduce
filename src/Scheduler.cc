@@ -177,7 +177,7 @@ void Scheduler::AssignMapperTask() {
                 MPI_Send(task, 2, MPI_INT, status.MPI_SOURCE, 0, MPI_COMM_WORLD);
 
                 // record dispatch job event
-                *this->write_log << GetTime() << ", Dispatch_MapTask, " << task[0] << ", " << request[1] << "\n";
+                *this->write_log << GetTime() << ", Dispatch_MapTask, " << task[0] << ", " << status.MPI_SOURCE << "\n";
                 // record this job start time
                 this->RecordTime[task[0]] = MPI_Wtime();
             }
@@ -215,7 +215,7 @@ void Scheduler::AssignReducerTask() {
                 // Send task to the worker
                 MPI_Send(&task, 1, MPI_INT, status.MPI_SOURCE, 0, MPI_COMM_WORLD);
                 // record dispatch event
-                *this->write_log << GetTime() << ", Dispatch_ReduceTask, " << task << ", " << request[1] << "\n";
+                *this->write_log << GetTime() << ", Dispatch_ReduceTask, " << task << ", " << status.MPI_SOURCE << "\n";
                 // record time
                 this->RecordTime[task] = MPI_Wtime();
             }

@@ -25,6 +25,24 @@ Worker::~Worker() {
     std::cout << "[Info]: Worker "<< this->rank << " terminate\n";
 }
 
+void Worker::DeleteFile(std::string filename) {
+    int result = 0;
+    char *f = NULL;
+
+    f = (char*)malloc(sizeof(char) * (filename.length() + 1));
+    for (int i = 0; i < filename.length(); i++) {
+        f[i] = filename[i];
+    }
+    f[filename.length()] = '\0';
+    
+    result = std::remove(f);
+    if (result != -1) {
+        std::cout << "[Info]: Remove file " << filename << " successfully\n";
+    }
+
+    free(f);
+}
+
 void Worker::ThreadPoolMapper() {
     bool task_finished = false;
     MPI_Status status;
@@ -85,6 +103,7 @@ void Worker::ThreadPoolReducer() {
     int reducer_index;
 
     this->job_reducer = new std::queue<int>;
+    this->job_finished = new std::queue<int>;
 
     for (int i = 0; i < this->reducer_thread_number; i++) {
         pthread_create(&this->threads[i], NULL, Worker::ReducerFunction, this);
@@ -92,7 +111,7 @@ void Worker::ThreadPoolReducer() {
 
     while (!task_finished) {
         // check available thread
-        while (this->available_num);
+        while (this->available_num == 0);
 
         request[0] = 0;
         request[1] = 0;
@@ -113,8 +132,16 @@ void Worker::ThreadPoolReducer() {
         pthread_join(this->threads[i], NULL);
     }
 
+    while (!this->job_finished->empty()) {
+        request[0] = 1;
+        request[1] = this->job_finished->front();
+        MPI_Send(request, 2, MPI_INT, this->scheduler_index, 0, MPI_COMM_WORLD);
+        this->job_finished->pop();
+    }
+
     // delete queue
     delete this->job_reducer;
+    delete this->job_finished;
     MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -227,5 +254,111 @@ int Worker::Partition(int num_reducer, std::string word) {
 }
 
 void* Worker::ReducerFunction(void* input) {
+    Worker *reducer = (Worker*)input;
+    Count *word_count = new Count;
+    Total *total = new Total;
+    Collect *group = new Collect;
+
+    int task;
+    bool task_finished = false;
+
+    while (!task_finished) {
+        task = -1;
+        reducer->lock->lock();
+        if (!reducer->job_reducer->empty()) {
+            task = reducer->job_reducer->front();
+            if (task == -1) {
+                task_finished = true;
+            } else {
+                reducer->available_num -= 1;
+                reducer->job_reducer->pop();
+            }
+        }
+        reducer->lock->unlock();
+
+        if (task != -1) {
+            word_count->clear();
+            total->clear();
+            group->clear();
+
+            // read intermediate file
+            reducer->ReadFile(task, total);
+            // sort words
+            reducer->Sort(total);
+            // group
+            reducer->Group(total, group);
+            // reduce
+            reducer->Reduce(group, word_count);
+            // output
+            reducer->Output(word_count, task);
+
+            reducer->lock->lock();
+            reducer->job_finished->push(task);
+            reducer->available_num += 1;
+            reducer->lock->unlock();
+        }
+    }
+
+    delete word_count;
+    delete total;
+    delete group;
+    pthread_exit(NULL);
+}
+
+void Worker::ReadFile(int task, Total *total) {
+    std::string filename;
+    std::string reducer_num_str = std::to_string(task);
+    std::string word;
+    int count;
+
+    filename = "./intermediate_file/" + reducer_num_str + ".txt";
     
+    std::ifstream input_file(filename);
+    while (input_file >> word >> count) {
+        total->push_back({word, count});
+    }
+    input_file.close();
+
+    DeleteFile(filename);
+}
+
+bool Worker::cmp(Item a, Item b) {
+    return a.first < b.first;
+}
+
+void Worker::Sort(Total *total) {
+    sort(total->begin(), total->end(), cmp);
+}
+
+void Worker::Group(Total *total, Collect *group) {
+    for (auto item : *total) {
+        if (group->count(item.first) == 0) {
+            std::vector<int> tmp_vec;
+            tmp_vec.clear();
+            (*group)[item.first] = tmp_vec;
+            (*group)[item.first].push_back(item.second);
+        } else {
+            (*group)[item.first].push_back(item.second);
+        }
+    }
+}
+
+void Worker::Reduce(Collect *group, Count *word_count) {
+    for (auto item : *group) {
+        (*word_count)[item.first] = 0;
+        for (auto num : item.second) {
+            (*word_count)[item.first] += num;
+        }
+    }
+}
+
+void Worker::Output(Count *word_count, int task) {
+    std::string task_str = std::to_string(task);
+    std::string filename = this->output_dir + this->job_name + "-" + task_str + ".out";
+    std::ofstream myfile(filename);
+
+    for (auto word : *word_count) {
+        myfile << word.first << " " << word.second << "\n";
+    }
+    myfile.close();
 }

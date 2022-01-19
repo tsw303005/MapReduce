@@ -21,8 +21,8 @@ public:
     void GetReducerTask();
     void AssignReducerTask();
     void EndWorkerExcecute(int num);
-    void Shuffle();
     void DeleteFile(std::string filename);
+    void Shuffle();
     time_t GetTime();
 
 private:
