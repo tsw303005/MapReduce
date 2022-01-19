@@ -1,5 +1,5 @@
 CXX = mpicxx
-CXXFLAGS = -g -O3 -std=c++11 -pthread
+CXXFLAGS = -O3 -std=c++11 -pthread
 
 SRC_DIR = /home/pp21/pp21s28/MapReduce/src
 INCLUDE = /home/pp21/pp21s28/MapReduce/src
